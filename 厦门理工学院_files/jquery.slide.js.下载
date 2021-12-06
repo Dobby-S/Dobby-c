@@ -1,0 +1,139 @@
+;(function() {
+	$.fn.extend({
+		//滑动和tabs合体
+		slide : function(opt) {
+			var setting = {
+				offset : null, //滚动的宽度
+				mode : 'render', //render || setup
+				cycle : true, //是否循环滚动
+				animate : 'slide', //动画效果淡出或滑动
+				text : true,
+				hasController : true, //是否添加左右控制
+				hasPointer : true, //是否添加点控
+				autoPlay : true, //自动播放
+				container : null, //控制浮层容器
+				pointers : null, //点控容器
+				template : null, //render模版
+				data : null, //render数据
+				onDataChange : null, //数据改变或界面更新时触发
+				animated : false//动画状态
+			}
+			var options = $.extend(setting, opt);
+			return this.each(function() {
+
+				var $this = options.container || $(this), $items = $('.slide-item', $this), $text = $('.slide-text', $this), $view = $('.slide-main-view', $this), $pointers = options.hasPointer && (options.pointers || $('.slide-pointer a', $this)), $prev = options.hasController && $('.slide-controler-prev', $this), $next = options.hasController && $('.slide-controler-next', $this), offset = options.offset || $view.width(), animated = true, size = $items.size() - 1, timer = null, currentindex = 0;
+				$items.css('zIndex', -1);
+				$items.eq(0).css('zIndex', 9);
+				$text.eq(0).css({
+					bottom : 0
+				});
+
+				function move(index) {
+					if (index == currentindex)
+						return;
+					if (!animated)
+						return;
+					$items.eq(currentindex).css('zIndex', 9);
+					$items.eq(index).css('zIndex', 8).show();
+					if (animated && (options.animate == 'fade')) {
+						//淡出或者滑动
+						$items.eq(currentindex).fadeOut(function() {
+							$(this).css('zIndex', -1).hide();
+							$items.eq(index).css('zIndex', 9);
+							animated = true;
+						});
+					}
+
+					if (animated && (options.animate != 'fade')) {
+						$items.eq(currentindex).css('left', 0).animate({
+							left : (index > currentindex ? -offset : offset)
+						}, 400, function() {
+							$(this).css('zIndex', -1);
+							$items.eq(index).css('zIndex', 9);
+							//animated = true;
+
+						});
+						$items.eq(index).css('left', (index > currentindex ? offset : -offset)).animate({
+							left : 0
+						}, 400, function() {
+							$(this).css('zIndex', -1);
+							$items.eq(index).css('zIndex', 9);
+							// $text.css('bottom' , -40);
+							//$text.eq(index).animate({bottom:0},200)
+							animated = true;
+
+						});
+					}
+					currentindex = index;
+					animated = false;
+					$pointers && changePointer(index);
+					return $this;
+				}
+
+				//切换pointer状态
+				function changePointer(index) {
+					$pointers.removeClass('select');
+					$($pointers[index]).addClass('select');
+				}
+
+				//事件绑定
+				$pointers && $pointers.on('click', function() {
+					options.autoPlay && (timer && clearInterval(timer) || ( timer = setInterval(function() {
+						currentindex < size && move(currentindex + 1) || move(0);
+					}, 5000)));
+					move($pointers.index(this));
+				});
+				$prev && $prev.on('click', function() {
+					options.autoPlay && (timer && clearInterval(timer) || ( timer = setInterval(function() {
+						currentindex < size && move(currentindex + 1) || move(0);
+					}, 5000)));
+					currentindex == 0 && move(size) || move(currentindex - 1);
+
+				});
+				$next && $next.on('click', function(e) {
+					options.autoPlay && (timer && clearInterval(timer) || ( timer = setInterval(function() {
+						currentindex < size && move(currentindex + 1) || move(0);
+					}, 5000)));
+					currentindex < size && move(currentindex + 1) || move(0);
+				});
+
+				//自动播放
+				options.autoPlay && !timer && ( timer = setInterval(function() {
+					currentindex < size && move(currentindex + 1) || move(0);
+				}, 5000));
+				$items.hover(function() {
+					options.autoPlay && (timer && clearInterval(timer));
+				}, function() {
+					options.autoPlay && ( timer = setInterval(function() {
+						currentindex < size && move(currentindex + 1) || move(0);
+					}, 5000));
+				})
+			});
+
+		},
+		//风琴效果插件
+		organ : function(options) {
+			var setting = {
+				max : 430,
+				min : 181
+			}
+			var opt = $.extend(setting, options);
+			return this.each(function() {
+				var animate = true, $this = $(this), $items = $('li', $this);
+				$items.on('mouseenter', function() {
+					if (animate && !$(this).hasClass('select')) {
+						animate = false;
+						$(this).parent('ul').find('.select').animate({
+							width : opt.min
+						}, 200).removeClass('select');
+						$(this).animate({
+							width : opt.max
+						}, 200, function() {
+							animate = true;
+						}).addClass('select');
+					}
+				});
+			});
+		}
+	});
+})(jQuery);
